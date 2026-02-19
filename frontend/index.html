@@ -18,32 +18,28 @@
     #chat-container { width: 400px; height: 600px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
     #messages-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
     
-    /* Τα συννεφάκια */
     .message { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; line-height: 1.4; }
-		.user { 
-	  background: linear-gradient(135deg, #0084ff, #00a2ff); 
-	  color: white; 
-	  align-self: flex-end;
-	  box-shadow: 0 4px 10px rgba(0, 132, 255, 0.2);
-	}
+    .user { 
+      background: linear-gradient(135deg, #0084ff, #00a2ff); 
+      color: white; 
+      align-self: flex-end;
+      box-shadow: 0 4px 10px rgba(0, 132, 255, 0.2);
+    }
 
-	.bot { 
-	  background: #ffffff; 
-	  color: #333; 
-	  align-self: flex-start;
-	  border: 1px solid #e4e6eb;
-	  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-	}
+    .bot { 
+      background: #ffffff; 
+      color: #333; 
+      align-self: flex-start;
+      border: 1px solid #e4e6eb;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+    }
 
-	#chat-container {
-	  border: none;
-	  background: #f9f9f9;
-	}
-    
+    #chat-container { border: none; background: #f9f9f9; }
     #input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
     input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
     button { background: #0084ff; color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
     button:hover { background: #0073e6; }
+    button:disabled { background: #ccc; cursor: not-allowed; }
   </style>
 </head>
 <body>
@@ -51,102 +47,107 @@
   <script type="text/babel" data-type="module">
     import React, { useState, useEffect, useRef } from 'react';
     import { createRoot } from 'react-dom/client';
-	function TypewriterText({ text }) {
-	  const [displayedText, setDisplayedText] = React.useState("");
-	  
-	  React.useEffect(() => {
-		let i = 0;
-		const timer = setInterval(() => {
-		  setDisplayedText((prev) => prev + text.charAt(i));
-		  i++;
-		  if (i >= text.length) clearInterval(timer);
-		}, 20); // Ταχύτητα πληκτρολόγησης (20ms ανά γράμμα)
-		return () => clearInterval(timer);
-	  }, [text]);
 
-	  return <span>{displayedText}</span>;
-	}
-	
+    // --- CONFIGURATION ---
+    // Το Direct URL από το Hugging Face Space σου
+    const API_BASE_URL = "https://sotch13-ai-chatbot-assistant.hf.space";
+
+    function TypewriterText({ text }) {
+      const [displayedText, setDisplayedText] = React.useState("");
+      React.useEffect(() => {
+        let i = 0;
+        const timer = setInterval(() => {
+          setDisplayedText((prev) => prev + text.charAt(i));
+          i++;
+          if (i >= text.length) clearInterval(timer);
+        }, 20);
+        return () => clearInterval(timer);
+      }, [text]);
+      return <span>{displayedText}</span>;
+    }
+    
     function App() {
       const [messages, setMessages] = useState([
-        { sender: "bot", text: "Γεια σου! Είμαι το Python Bot σου. Γράψε μου κάτι!" }
+        { sender: "bot", text: "Γεια σου! Το chatbot είναι live στο Hugging Face. Πώς μπορώ να βοηθήσω;" }
       ]);
       const [input, setInput] = useState("");
-	  
-	  const [isTyping, setIsTyping] = useState(false);
-	  
+      const [isTyping, setIsTyping] = useState(false);
       const messagesEndRef = useRef(null);
 
-      // Αυτόματο scroll προς τα κάτω σε κάθε νέο μήνυμα
       useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
       }, [messages]);
 
-	  const sendMessage = async () => {
-	  if (!input.trim()) return;
+      const sendMessage = async () => {
+        if (!input.trim() || isTyping) return;
 
-	  const userMsg = { sender: "user", text: input };
-	  setMessages(prev => [...prev, userMsg]);
-	  const currentInput = input;
-	  setInput("");
-	  setIsTyping(true);
+        const userMsg = { sender: "user", text: input };
+        setMessages(prev => [...prev, userMsg]);
+        const currentInput = input;
+        setInput("");
+        setIsTyping(true);
 
-	  try {
-		const response = await fetch('http://127.0.0.1:8000/api/chat', {
-		  method: 'POST', // <--- Βεβαιώσου ότι αυτό είναι εκεί και είναι με ΚΕΦΑΛΑΙΑ
-		  headers: { 
-			'Content-Type': 'application/json' 
-		  },
-		  body: JSON.stringify({ text: currentInput }) // Το body επιτρέπεται ΜΟΝΟ σε POST
-		});
-		
-		const data = await response.json();
-		setMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
-	  } catch (error) {
-		setMessages(prev => [...prev, { sender: "bot", text: "❌ Σφάλμα σύνδεσης!" }]);
-	  } finally {
-		setIsTyping(false);
-	  }
-	};
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/chat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: currentInput })
+          });
+          
+          const data = await response.json();
+          setMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
+        } catch (error) {
+          console.error("Fetch error:", error);
+          setMessages(prev => [...prev, { sender: "bot", text: "❌ Σφάλμα σύνδεσης με το Hugging Face Space!" }]);
+        } finally {
+          setIsTyping(false);
+        }
+      };
+
+      const clearChat = async () => {
+        try {
+          await fetch(`${API_BASE_URL}/api/clear`, { method: 'POST' });
+          setMessages([{ sender: "bot", text: "Η μνήμη καθαρίστηκε! Είμαι έτοιμος για νέα συζήτηση." }]);
+        } catch (e) {
+          alert("Αποτυχία καθαρισμού μνήμης.");
+        }
+      };
 
       return (
-	  <>
-		<button onClick={async () => {
-		  await fetch('http://127.0.0.1:8000/api/clear', { method: 'POST' });
-		  setMessages([{ sender: "bot", text: "Η μνήμη μου καθαρίστηκε! Τι θα λέγαμε;" }]);
-		}} style={{ marginBottom: '10px', cursor: 'pointer' }}>
-		  🗑️ Καθαρισμός
-		</button>
-        <div id="chat-container">
-          <div style={{ padding: '15px', background: '#0084ff', color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-            Python AI Chat
+        <>
+          <button onClick={clearChat} style={{ marginBottom: '10px', cursor: 'pointer' }}>
+            🗑️ Καθαρισμός Μνήμης
+          </button>
+          <div id="chat-container">
+            <div style={{ padding: '15px', background: '#0084ff', color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
+              Python AI Chat (Live)
+            </div>
+            <div id="messages-area">
+              {messages.map((msg, index) => (
+                <div key={index} className={`message ${msg.sender}`}>
+                  {msg.sender === "bot" && index === messages.length - 1 ? (
+                    <TypewriterText text={msg.text} />
+                  ) : (
+                    msg.text
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+            <div id="input-area">
+              <input 
+                value={input} 
+                disabled={isTyping}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                placeholder={isTyping ? "Το bot απαντάει..." : "Γράψε κάτι..."}
+              />
+              <button onClick={sendMessage} disabled={isTyping || !input.trim()}>
+                {isTyping ? "..." : "Στείλε"}
+              </button>
+            </div>
           </div>
-          <div id="messages-area">
-		    {messages.map((msg, index) => (
-		    <div key={index} className={`message ${msg.sender}`}>
-			{msg.sender === "bot" && index === messages.length - 1 ? (
-			  <TypewriterText text={msg.text} />
-			) : (
-			  msg.text
-			)}
-		    </div>
-		    ))}
-            <div ref={messagesEndRef} />
-          </div>
-          <div id="input-area">
-		  <input 
-			value={input} 
-			disabled={isTyping} // Κλειδώνει το input όσο περιμένουμε
-			onChange={(e) => setInput(e.target.value)}
-			onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-			placeholder={isTyping ? "Το bot σκέφτεται..." : "Πληκτρολογήστε μήνυμα..."}
-		  />
-		  <button onClick={sendMessage} disabled={isTyping || !input.trim()}>
-			{isTyping ? "..." : "Στείλε"}
-		  </button>
-		</div>
-        </div>
-		</>
+        </>
       );
     }
 
