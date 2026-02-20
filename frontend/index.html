@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="el">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Python & React Chatbot</title>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script async src="https://ga.jspm.io/npm:es-module-shims@1.7.0/dist/es-module-shims.js"></script>
@@ -14,11 +15,53 @@
   }
   </script>
   <style>
-    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; margin: 0; display: flex; justify-content: center; align-items: center; height: 100vh; }
-    #chat-container { width: 400px; height: 600px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; }
-    #messages-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    /* Reset & Base Styles */
+    * { box-sizing: border-box; }
     
-    .message { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; line-height: 1.4; }
+    body { 
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+      background-color: #f0f2f5; 
+      margin: 0; 
+      display: flex; 
+      flex-direction: column;
+      justify-content: center; 
+      align-items: center; 
+      min-height: 100vh;
+      padding: 10px; /* Λίγο κενό γύρω-γύρω στα κινητά */
+    }
+
+    #chat-container { 
+      width: 100%; 
+      max-width: 500px; /* Μέγιστο πλάτος σε desktop */
+      height: 80vh; /* 80% του ύψους της οθόνης */
+      max-height: 700px;
+      background: white; 
+      border-radius: 15px; 
+      box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
+      display: flex; 
+      flex-direction: column; 
+      overflow: hidden; 
+      background: #f9f9f9;
+    }
+
+    #messages-area { 
+      flex: 1; 
+      padding: 15px; 
+      overflow-y: auto; 
+      display: flex; 
+      flex-direction: column; 
+      gap: 10px; 
+    }
+    
+    .message { 
+      max-width: 85%; 
+      padding: 10px 15px; 
+      border-radius: 18px; 
+      font-size: 15px; 
+      line-height: 1.4; 
+      word-wrap: break-word; /* Για να μην βγαίνουν τα μεγάλα κείμενα έξω */
+    }
+
     .user { 
       background: linear-gradient(135deg, #0084ff, #00a2ff); 
       color: white; 
@@ -34,12 +77,57 @@
       box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
     }
 
-    #chat-container { border: none; background: #f9f9f9; }
-    #input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 10px; }
-    input { flex: 1; padding: 10px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
-    button { background: #0084ff; color: white; border: none; padding: 8px 15px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-    button:hover { background: #0073e6; }
+    #input-area { 
+      padding: 15px; 
+      border-top: 1px solid #eee; 
+      display: flex; 
+      gap: 8px; 
+      background: white;
+    }
+
+    input { 
+      flex: 1; 
+      padding: 12px; 
+      border: 1px solid #ddd; 
+      border-radius: 20px; 
+      outline: none; 
+      font-size: 16px; /* 16px εμποδίζει το αυτόματο ζουμ στο iPhone */
+    }
+
+    button.send-btn { 
+      background: #0084ff; 
+      color: white; 
+      border: none; 
+      padding: 0 20px; 
+      border-radius: 20px; 
+      cursor: pointer; 
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+
+    button.send-btn:hover { background: #0073e6; }
     button:disabled { background: #ccc; cursor: not-allowed; }
+
+    .clear-btn {
+      margin-bottom: 10px;
+      padding: 8px 16px;
+      border-radius: 10px;
+      border: 1px solid #ddd;
+      background: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    /* Media Query για πολύ μικρές οθόνες */
+    @media (max-width: 480px) {
+      #chat-container {
+        height: 90vh; /* Πιάνει περισσότερο ύψος στο κινητό */
+        border-radius: 10px;
+      }
+      .message {
+        font-size: 14px;
+      }
+    }
   </style>
 </head>
 <body>
@@ -48,8 +136,6 @@
     import React, { useState, useEffect, useRef } from 'react';
     import { createRoot } from 'react-dom/client';
 
-    // --- CONFIGURATION ---
-    // Το Direct URL από το Hugging Face Space σου
     const API_BASE_URL = "https://sotch13-ai-chatbot-assistant.hf.space";
 
     function TypewriterText({ text }) {
@@ -68,7 +154,7 @@
     
     function App() {
       const [messages, setMessages] = useState([
-        { sender: "bot", text: "Γεια σου! Το chatbot είναι live στο Hugging Face. Πώς μπορώ να βοηθήσω;" }
+        { sender: "bot", text: "Γεια σου! Το chatbot είναι live. Πώς μπορώ να βοηθήσω;" }
       ]);
       const [input, setInput] = useState("");
       const [isTyping, setIsTyping] = useState(false);
@@ -97,8 +183,7 @@
           const data = await response.json();
           setMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
         } catch (error) {
-          console.error("Fetch error:", error);
-          setMessages(prev => [...prev, { sender: "bot", text: "❌ Σφάλμα σύνδεσης με το Hugging Face Space!" }]);
+          setMessages(prev => [...prev, { sender: "bot", text: "❌ Σφάλμα σύνδεσης!" }]);
         } finally {
           setIsTyping(false);
         }
@@ -107,21 +192,23 @@
       const clearChat = async () => {
         try {
           await fetch(`${API_BASE_URL}/api/clear`, { method: 'POST' });
-          setMessages([{ sender: "bot", text: "Η μνήμη καθαρίστηκε! Είμαι έτοιμος για νέα συζήτηση." }]);
+          setMessages([{ sender: "bot", text: "Η μνήμη καθαρίστηκε!" }]);
         } catch (e) {
-          alert("Αποτυχία καθαρισμού μνήμης.");
+          alert("Σφάλμα.");
         }
       };
 
       return (
-        <>
-          <button onClick={clearChat} style={{ marginBottom: '10px', cursor: 'pointer' }}>
-            🗑️ Καθαρισμός Μνήμης
+        <React.Fragment>
+          <button className="clear-btn" onClick={clearChat}>
+            🗑️ Καθαρισμός
           </button>
+          
           <div id="chat-container">
             <div style={{ padding: '15px', background: '#0084ff', color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
               Python AI Chat (Live)
             </div>
+            
             <div id="messages-area">
               {messages.map((msg, index) => (
                 <div key={index} className={`message ${msg.sender}`}>
@@ -134,20 +221,21 @@
               ))}
               <div ref={messagesEndRef} />
             </div>
+            
             <div id="input-area">
               <input 
                 value={input} 
                 disabled={isTyping}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-                placeholder={isTyping ? "Το bot απαντάει..." : "Γράψε κάτι..."}
+                placeholder={isTyping ? "Περιμένετε..." : "Μήνυμα..."}
               />
-              <button onClick={sendMessage} disabled={isTyping || !input.trim()}>
+              <button className="send-btn" onClick={sendMessage} disabled={isTyping || !input.trim()}>
                 {isTyping ? "..." : "Στείλε"}
               </button>
             </div>
           </div>
-        </>
+        </React.Fragment>
       );
     }
 
