@@ -14,20 +14,147 @@
     }
   }
   </script>
-  <style>
-    /* CSS παραμένει ίδιο με το responsive που φτιάξαμε πριν */
-    * { box-sizing: border-box; }
-    body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
-    #chat-container { width: 100%; max-width: 500px; height: 80vh; max-height: 700px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; background: #f9f9f9; }
-    #messages-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
-    .message { max-width: 85%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
-    .user { background: linear-gradient(135deg, #0084ff, #00a2ff); color: white; align-self: flex-end; }
-    .bot { background: #ffffff; color: #333; align-self: flex-start; border: 1px solid #e4e6eb; }
-    #input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 8px; background: white; }
-    input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 16px; }
-    button.send-btn { background: #0084ff; color: white; border: none; padding: 0 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
-    .clear-btn { margin-bottom: 10px; padding: 8px 16px; border-radius: 10px; border: 1px solid #ddd; background: white; cursor: pointer; }
-  </style>
+<style>
+  :root {
+    --primary-color: #6366f1;
+    --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --bot-msg-bg: #ffffff;
+    --user-msg-bg: #6366f1;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body { 
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+    background: var(--bg-gradient);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 15px;
+  }
+
+  /* Glassmorphism Container */
+  #chat-container { 
+    width: 100%; 
+    max-width: 450px; 
+    height: 85vh;
+    max-height: 800px;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 24px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+    display: flex; 
+    flex-direction: column; 
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+
+  /* Header */
+  .chat-header {
+    padding: 20px;
+    background: white;
+    text-align: center;
+    border-bottom: 1px solid #eee;
+  }
+  .chat-header h2 { font-size: 1.1rem; color: #1f2937; font-weight: 700; }
+  .status-dot { height: 8px; width: 8px; background: #10b981; border-radius: 50%; display: inline-block; margin-right: 5px; }
+
+  /* Messages Area */
+  #messages-area { 
+    flex: 1; 
+    padding: 20px; 
+    overflow-y: auto; 
+    display: flex; 
+    flex-direction: column; 
+    gap: 12px;
+    background: rgba(249, 250, 251, 0.5);
+  }
+
+  .message { 
+    max-width: 80%; 
+    padding: 12px 16px; 
+    border-radius: 16px; 
+    font-size: 14px; 
+    line-height: 1.5;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .user { 
+    background: var(--user-msg-bg);
+    color: white; 
+    align-self: flex-end;
+    border-bottom-right-radius: 4px;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+  }
+
+  .bot { 
+    background: var(--bot-msg-bg);
+    color: #374151; 
+    align-self: flex-start;
+    border-bottom-left-radius: 4px;
+    border: 1px solid #e5e7eb;
+  }
+
+  /* Input Area */
+  #input-area { 
+    padding: 20px; 
+    background: white;
+    display: flex; 
+    gap: 10px;
+    align-items: center;
+  }
+
+  input { 
+    flex: 1; 
+    padding: 12px 18px; 
+    border: 1px solid #e5e7eb; 
+    border-radius: 12px; 
+    outline: none; 
+    font-size: 15px;
+    transition: border 0.2s;
+  }
+  input:focus { border-color: var(--primary-color); }
+
+  button.send-btn { 
+    background: var(--primary-color);
+    color: white; 
+    border: none; 
+    width: 45px;
+    height: 45px;
+    border-radius: 12px; 
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s, background 0.2s;
+  }
+  button.send-btn:hover { transform: scale(1.05); background: #4f46e5; }
+
+  .clear-btn {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    backdrop-filter: blur(5px);
+  }
+  
+  /* Scrollbar */
+  #messages-area::-webkit-scrollbar { width: 4px; }
+  #messages-area::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 10px; }
+</style>
 </head>
 <body>
   <div id="root"></div>
@@ -119,15 +246,12 @@
       };
 
       return (
-        <React.Fragment>
-          <button className="clear-btn" onClick={clearChat}>
-            🗑️ Καθαρισμός Μνήμης (Supabase)
-          </button>
-          
-          <div id="chat-container">
-            <div style={{ padding: '15px', background: '#0084ff', color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-              Python AI Chat (Persistent)
-            </div>
+      <React.Fragment>
+        <button className="clear-btn" onClick={clearChat}>🗑️ Clear Space</button>
+        <div id="chat-container">
+          <div className="chat-header">
+            <h2><span className="status-dot"></span> AI Assistant</h2>
+          </div>
             
             <div id="messages-area">
               {isLoadingHistory ? (
