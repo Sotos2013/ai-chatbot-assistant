@@ -3,62 +3,65 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from openai import OpenAI
+from supabase import create_client, Client # <--- Η βιβλιοθήκη της Supabase
 
 app = FastAPI()
 
-# 2. CORS - ΠΟΛΥ ΣΗΜΑΝΤΙΚΟ ΓΙΑ ΤΟ GITHUB PAGES
+# 1. Σύνδεση με Supabase
+url: str = os.getenv("SUPABASE_URL")
+key: str = os.getenv("SUPABASE_KEY")
+supabase: Client = create_client(url, key)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 3. Ρύθμιση του Hugging Face Client
 hf_client = OpenAI(
     base_url="https://router.huggingface.co/v1",
     api_key=os.getenv("HF_TOKEN")
 )
 
-chat_history = []
-
 class ChatRequest(BaseModel):
     text: str
 
-# Προσθήκη ενός GET endpoint για να ξέρουμε αν είναι "ζωντανό"
 @app.get("/")
-def read_root():
-    return {"status": "API is running"}
+def home():
+    # Τραβάμε τα τελευταία 15 μηνύματα από τη Supabase
+    response = supabase.table("messages").select("*").order("id", desc=True).limit(15).execute()
+    history = response.data
+    return {"status": "Running", "history": history[::-1]}
 
 @app.post("/api/chat")
-async def chat_endpoint(data: ChatRequest):
-    global chat_history
-    
-    token = os.getenv("HF_TOKEN")
-    if not token:
-        return {"reply": "🚨 Σφάλμα: Το HF_TOKEN δεν έχει οριστεί στα Secrets του Space!"}
-
+async def chat(data: ChatRequest):
     try:
-        chat_history.append({"role": "user", "content": data.text})
+        # 1. Αποθήκευση μηνύματος χρήστη στη Supabase
+        supabase.table("messages").insert({"role": "user", "content": data.text}).execute()
 
+        # 2. Φόρτωση ιστορικού για το AI
+        res = supabase.table("messages").select("role", "content").order("id", desc=True).limit(6).execute()
+        messages_for_ai = res.data[::-1]
+
+        # 3. Κλήση AI
         completion = hf_client.chat.completions.create(
             model="moonshotai/Kimi-K2-Instruct-0905",
-            messages=chat_history,
+            messages=messages_for_ai,
             max_tokens=500
         )
-
         bot_response = completion.choices[0].message.content
-        chat_history.append({"role": "assistant", "content": bot_response})
+
+        # 4. Αποθήκευση απάντησης bot στη Supabase
+        supabase.table("messages").insert({"role": "assistant", "content": bot_response}).execute()
 
         return {"reply": bot_response}
 
     except Exception as e:
-        chat_history = [] 
-        return {"reply": f"Σφάλμα API: {str(e)}"}
+        return {"reply": f"Error: {str(e)}"}
 
 @app.post("/api/clear")
 async def clear_chat():
-    global chat_history
-    chat_history = []
-    return {"status": "Memory cleared"}
+    # Διαγραφή όλων των εγγραφών (Προσοχή: στην Postgres θέλει φίλτρο, εδώ διαγράφουμε τα πάντα)
+    supabase.table("messages").delete().neq("role", "none").execute()
+    return {"status": "History Cleared"}

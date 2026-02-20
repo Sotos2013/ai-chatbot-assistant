@@ -15,119 +15,18 @@
   }
   </script>
   <style>
-    /* Reset & Base Styles */
+    /* CSS παραμένει ίδιο με το responsive που φτιάξαμε πριν */
     * { box-sizing: border-box; }
-    
-    body { 
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      background-color: #f0f2f5; 
-      margin: 0; 
-      display: flex; 
-      flex-direction: column;
-      justify-content: center; 
-      align-items: center; 
-      min-height: 100vh;
-      padding: 10px; /* Λίγο κενό γύρω-γύρω στα κινητά */
-    }
-
-    #chat-container { 
-      width: 100%; 
-      max-width: 500px; /* Μέγιστο πλάτος σε desktop */
-      height: 80vh; /* 80% του ύψους της οθόνης */
-      max-height: 700px;
-      background: white; 
-      border-radius: 15px; 
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1); 
-      display: flex; 
-      flex-direction: column; 
-      overflow: hidden; 
-      background: #f9f9f9;
-    }
-
-    #messages-area { 
-      flex: 1; 
-      padding: 15px; 
-      overflow-y: auto; 
-      display: flex; 
-      flex-direction: column; 
-      gap: 10px; 
-    }
-    
-    .message { 
-      max-width: 85%; 
-      padding: 10px 15px; 
-      border-radius: 18px; 
-      font-size: 15px; 
-      line-height: 1.4; 
-      word-wrap: break-word; /* Για να μην βγαίνουν τα μεγάλα κείμενα έξω */
-    }
-
-    .user { 
-      background: linear-gradient(135deg, #0084ff, #00a2ff); 
-      color: white; 
-      align-self: flex-end;
-      box-shadow: 0 4px 10px rgba(0, 132, 255, 0.2);
-    }
-
-    .bot { 
-      background: #ffffff; 
-      color: #333; 
-      align-self: flex-start;
-      border: 1px solid #e4e6eb;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-    }
-
-    #input-area { 
-      padding: 15px; 
-      border-top: 1px solid #eee; 
-      display: flex; 
-      gap: 8px; 
-      background: white;
-    }
-
-    input { 
-      flex: 1; 
-      padding: 12px; 
-      border: 1px solid #ddd; 
-      border-radius: 20px; 
-      outline: none; 
-      font-size: 16px; /* 16px εμποδίζει το αυτόματο ζουμ στο iPhone */
-    }
-
-    button.send-btn { 
-      background: #0084ff; 
-      color: white; 
-      border: none; 
-      padding: 0 20px; 
-      border-radius: 20px; 
-      cursor: pointer; 
-      font-weight: bold;
-      transition: background 0.2s;
-    }
-
-    button.send-btn:hover { background: #0073e6; }
-    button:disabled { background: #ccc; cursor: not-allowed; }
-
-    .clear-btn {
-      margin-bottom: 10px;
-      padding: 8px 16px;
-      border-radius: 10px;
-      border: 1px solid #ddd;
-      background: white;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    /* Media Query για πολύ μικρές οθόνες */
-    @media (max-width: 480px) {
-      #chat-container {
-        height: 90vh; /* Πιάνει περισσότερο ύψος στο κινητό */
-        border-radius: 10px;
-      }
-      .message {
-        font-size: 14px;
-      }
-    }
+    body { font-family: 'Segoe UI', sans-serif; background-color: #f0f2f5; margin: 0; display: flex; flex-direction: column; justify-content: center; align-items: center; min-height: 100vh; padding: 10px; }
+    #chat-container { width: 100%; max-width: 500px; height: 80vh; max-height: 700px; background: white; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; overflow: hidden; background: #f9f9f9; }
+    #messages-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+    .message { max-width: 85%; padding: 10px 15px; border-radius: 18px; font-size: 15px; line-height: 1.4; word-wrap: break-word; }
+    .user { background: linear-gradient(135deg, #0084ff, #00a2ff); color: white; align-self: flex-end; }
+    .bot { background: #ffffff; color: #333; align-self: flex-start; border: 1px solid #e4e6eb; }
+    #input-area { padding: 15px; border-top: 1px solid #eee; display: flex; gap: 8px; background: white; }
+    input { flex: 1; padding: 12px; border: 1px solid #ddd; border-radius: 20px; outline: none; font-size: 16px; }
+    button.send-btn { background: #0084ff; color: white; border: none; padding: 0 20px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+    .clear-btn { margin-bottom: 10px; padding: 8px 16px; border-radius: 10px; border: 1px solid #ddd; background: white; cursor: pointer; }
   </style>
 </head>
 <body>
@@ -153,12 +52,36 @@
     }
     
     function App() {
-      const [messages, setMessages] = useState([
-        { sender: "bot", text: "Γεια σου! Το chatbot είναι live. Πώς μπορώ να βοηθήσω;" }
-      ]);
+      const [messages, setMessages] = useState([]);
       const [input, setInput] = useState("");
       const [isTyping, setIsTyping] = useState(false);
+      const [isLoadingHistory, setIsLoadingHistory] = useState(true);
       const messagesEndRef = useRef(null);
+
+      // --- NEW: ΦΟΡΤΩΣΗ ΙΣΤΟΡΙΚΟΥ ΑΠΟ SUPABASE ΜΕΣΩ ΤΟΥ BACKEND ---
+      useEffect(() => {
+        const fetchHistory = async () => {
+          try {
+            const res = await fetch(API_BASE_URL);
+            const data = await res.json();
+            if (data.history && data.history.length > 0) {
+              const loadedMessages = data.history.map(m => ({
+                sender: m.role === "user" ? "user" : "bot",
+                text: m.content
+              }));
+              setMessages(loadedMessages);
+            } else {
+              setMessages([{ sender: "bot", text: "Γεια! Δεν βρήκα προηγούμενα μηνύματα. Πώς μπορώ να βοηθήσω;" }]);
+            }
+          } catch (err) {
+            console.error("Error loading history:", err);
+            setMessages([{ sender: "bot", text: "Καλώς ήρθες! (Το ιστορικό δεν είναι διαθέσιμο αυτή τη στιγμή)" }]);
+          } finally {
+            setIsLoadingHistory(false);
+          }
+        };
+        fetchHistory();
+      }, []);
 
       useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -166,7 +89,6 @@
 
       const sendMessage = async () => {
         if (!input.trim() || isTyping) return;
-
         const userMsg = { sender: "user", text: input };
         setMessages(prev => [...prev, userMsg]);
         const currentInput = input;
@@ -179,7 +101,6 @@
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ text: currentInput })
           });
-          
           const data = await response.json();
           setMessages(prev => [...prev, { sender: "bot", text: data.reply }]);
         } catch (error) {
@@ -190,47 +111,50 @@
       };
 
       const clearChat = async () => {
+        if(!confirm("Θέλεις σίγουρα να σβήσεις όλο το ιστορικό από τη βάση;")) return;
         try {
           await fetch(`${API_BASE_URL}/api/clear`, { method: 'POST' });
-          setMessages([{ sender: "bot", text: "Η μνήμη καθαρίστηκε!" }]);
-        } catch (e) {
-          alert("Σφάλμα.");
-        }
+          setMessages([{ sender: "bot", text: "Το ιστορικό καθαρίστηκε!" }]);
+        } catch (e) { alert("Σφάλμα κατά τη διαγραφή."); }
       };
 
       return (
         <React.Fragment>
           <button className="clear-btn" onClick={clearChat}>
-            🗑️ Καθαρισμός
+            🗑️ Καθαρισμός Μνήμης (Supabase)
           </button>
           
           <div id="chat-container">
             <div style={{ padding: '15px', background: '#0084ff', color: 'white', textAlign: 'center', fontWeight: 'bold' }}>
-              Python AI Chat (Live)
+              Python AI Chat (Persistent)
             </div>
             
             <div id="messages-area">
-              {messages.map((msg, index) => (
-                <div key={index} className={`message ${msg.sender}`}>
-                  {msg.sender === "bot" && index === messages.length - 1 ? (
-                    <TypewriterText text={msg.text} />
-                  ) : (
-                    msg.text
-                  )}
-                </div>
-              ))}
+              {isLoadingHistory ? (
+                <div style={{textAlign: 'center', color: '#999', marginTop: '20px'}}>Φόρτωση ιστορικού...</div>
+              ) : (
+                messages.map((msg, index) => (
+                  <div key={index} className={`message ${msg.sender}`}>
+                    {msg.sender === "bot" && index === messages.length - 1 && !isLoadingHistory ? (
+                      <TypewriterText text={msg.text} />
+                    ) : (
+                      msg.text
+                    )}
+                  </div>
+                ))
+              )}
               <div ref={messagesEndRef} />
             </div>
             
             <div id="input-area">
               <input 
                 value={input} 
-                disabled={isTyping}
+                disabled={isTyping || isLoadingHistory}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
                 placeholder={isTyping ? "Περιμένετε..." : "Μήνυμα..."}
               />
-              <button className="send-btn" onClick={sendMessage} disabled={isTyping || !input.trim()}>
+              <button className="send-btn" onClick={sendMessage} disabled={isTyping || !input.trim() || isLoadingHistory}>
                 {isTyping ? "..." : "Στείλε"}
               </button>
             </div>
